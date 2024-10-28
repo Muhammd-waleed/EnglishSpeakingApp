@@ -3,61 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <title>Audio Transcription App</title>
+    <title>Document</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Audio Transcription App</h1>
-        <button id="recordButton">🎤 Record Audio</button>
-        <h2>Transcription:</h2>
-        <p id="transcriptionResult"></p>
-    </div>
+    <button id="startButton">Start Voice Recognition</button>
+    <p id="output"></p>
 
-    <script>
-        const recordButton = document.getElementById('recordButton');
-        const transcriptionResult = document.getElementById('transcriptionResult');
-        let mediaRecorder;
-        let audioChunks = [];
-
-        recordButton.onclick = async () => {
-            // Check for browser support
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert("Your browser does not support audio recording.");
-                return;
-            }
-
-            // Start recording
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.start();
-
-            recordButton.innerText = "⏹ Stop Recording";
-
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                audioChunks = [];
-
-                const formData = new FormData();
-                formData.append('audio', audioBlob);
-
-                // Send audio data to the server
-                const response = await fetch('/transcribe', {
-                    method: 'POST',
-                    body: audioBlob,
-                });
-
-                const result = await response.json();
-                transcriptionResult.innerText = result.transcription;
-                recordButton.innerText = "🎤 Record Audio";
-            };
-
-            mediaRecorder.stop();
-        };
-    </script>
+    
 </body>
 </html>
+<script>
+    // Check if the browser supports the Web Speech API
+if ('webkitSpeechRecognition' in window) {
+  // Create a new instance of the speech recognition object
+  const recognition = new webkitSpeechRecognition();
+
+  // Set some properties
+  recognition.continuous = false; // Stop after each recognition
+  recognition.interimResults = false; // Do not show interim results
+  recognition.lang = 'en-US'; // Set the language (English in this case)
+
+  // Define what happens when recognition starts
+  recognition.onstart = () => {
+    console.log('Voice recognition started. Speak now...');
+  };
+
+  // Define what happens when the recognition service returns a result
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    console.log('You said: ', transcript);
+    document.getElementById('output').innerText = transcript; // Display the text
+  };
+
+  // Define what happens when there is an error
+  recognition.onerror = (event) => {
+    console.error('Error occurred in recognition: ', event.error);
+  };
+
+  // Define what happens when the recognition service ends
+  recognition.onend = () => {
+    console.log('Voice recognition ended.');
+  };
+
+  // Start the speech recognition
+  document.getElementById('startButton').addEventListener('click', () => {
+    recognition.start();
+  });
+
+} else {
+  console.log('Speech recognition is not supported in this browser.');
+}
+
+</script>
